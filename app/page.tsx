@@ -448,9 +448,11 @@ export default function Home() {
             Join 50+ firms already using LexAI to win more cases with AI-powered strategy and jury intelligence.
           </p>
           <section className="flex flex-col items-center justify-center gap-4 px-6 py-2 text-center sm:flex-row">
-            <Button className="bg-blue-600 text-white hover:bg-blue-800 border border-gray-300 bg-none">
-              Start for Free
-            </Button>
+            <Link href="/signup">
+              <Button className="bg-blue-600 text-white hover:bg-blue-800 border border-gray-300 bg-none">
+                Start for Free
+              </Button>
+            </Link>
             <Button
               className="rounded-md bg-white text-black hover:bg-gray-100 border border-gray-300 bg-none"
             >
@@ -478,7 +480,7 @@ export default function Home() {
                   <Link href="/features" className="text-sm hover:underline">
                     Features
                   </Link>
-                  
+
                   <Link href="/Testimonials" className="text-sm hover:underline">
                     Testimonials
                   </Link>
