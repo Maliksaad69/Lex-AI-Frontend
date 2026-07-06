@@ -1,0 +1,498 @@
+================================================================================
+  FRONTEND DOCUMENTS TABLE — FULL GUIDE
+  LexAI Frontend — D:\Internship\frontend
+================================================================================
+
+TECH STACK
+----------
+  Next.js 16 (App Router)  |  React 19  |  TypeScript
+  shadcn/ui (Table, Button, Card, Badge)  |  Tailwind CSS v4
+  API client: lib/api.ts  (centralized fetch wrapper with JWT auth)
+
+PATTERN TO FOLLOW
+------------------
+  The cases page (app/(dashboard)/cases/page.tsx) is the reference
+  implementation. It uses:
+    - "use client" directive
+    - useState for data, loading, error
+    - useCallback + useEffect for initial fetch
+    - Error banner with retry button
+    - shadcn Table with empty state row
+    - lib/api.ts for all API calls
+
+This guide follows the same pattern exactly.
+
+
+═══════════════════════════════════════════════════════════════════════
+  PART 1 — ADD TYPES + API FUNCTIONS TO lib/api.ts
+═══════════════════════════════════════════════════════════════════════
+
+Open: lib/api.ts
+
+1. ADD THIS TYPE after the existing types (after line 129):
+
+// ── Document type ──────────────────────────────────────────────────
+
+export interface DocumentData {
+  id: string;                // UUID
+  userId: number;
+  caseId: string | null;     // UUID or null
+  filename: string;
+  fileType: string;          // "pdf", "docx", etc.
+  fileSize: number;          // bytes
+  filePath: string;
+  pageCount: number;
+  textPreview: string | null;
+  chunksCount: number;
+  qdrantDocumentId: string | null;
+  createdAt: string;         // ISO datetime
+  updatedAt: string;         // ISO datetime
+}
+
+2. ADD THESE API FUNCTIONS after the existing uploadDocuments function
+   (add them at the end of the file, before the closing):
+
+// ── Documents CRUD ─────────────────────────────────────────────────
+
+export async function fetchDocuments(caseId?: string): Promise<DocumentData[]> {
+  const query = caseId ? `?case_id=${encodeURIComponent(caseId)}` : "";
+  return request(`/documents/${query}`);
+}
+
+export async function fetchDocument(documentId: string): Promise<DocumentData> {
+  return request(`/documents/${documentId}`);
+}
+
+export async function updateDocument(
+  documentId: string,
+  payload: Partial<DocumentData>,
+): Promise<DocumentData> {
+  return request(`/documents/${documentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteDocument(documentId: string): Promise<void> {
+  return request(`/documents/${documentId}`, { method: "DELETE" });
+}
+
+
+═══════════════════════════════════════════════════════════════════════
+  PART 2 — DOCUMENTS TABLE COMPONENT
+═══════════════════════════════════════════════════════════════════════
+
+Create this file: components/DocumentsTable.tsx
+on the
+This is a reusable component. Pass a caseId prop and it fetches + displays
+all documents for that case, with loading/error/empty states and delete support.
+
+//////////////////////////////////////////////////////////////////////////
+// FILE: components/DocumentsTable.tsx
+//////////////////////////////////////////////////////////////////////////
+
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  fetchDocuments,
+  deleteDocument,
+  type DocumentData,
+} from "@/lib/api";
+
+interface DocumentsTableProps {
+  caseId: string;    // UUID of the case to show documents for
+}
+
+export function DocumentsTable({ caseId }: DocumentsTableProps) {
+  const [docs, setDocs] = useState<DocumentData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── Fetch documents from PostgreSQL ───────────────────────────
+  const loadDocs = useCallback(async () => {
+    if (!caseId) return;
+    try {
+      setError(null);
+      setLoading(true);
+      const data = await fetchDocuments(caseId);
+      setDocs(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load documents");
+    } finally {
+      setLoading(false);
+    }
+  }, [caseId]);
+
+  useEffect(() => {
+    loadDocs();
+  }, [loadDocs]);
+
+  // ── Delete a document (PostgreSQL + Qdrant) ──────────────────
+  const handleDelete = async (docId: string) => {
+    if (!confirm("Delete this document? Its chunks will also be removed.")) return;
+    try {
+      await deleteDocument(docId);
+      setDocs((prev) => prev.filter((d) => d.id !== docId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete document");
+    }
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────
+  const formatSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatDate = (iso: string): string => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // ── Loading state ────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="rounded-md border p-8 text-center text-muted-foreground">
+        Loading documents…
+      </div>
+    );
+  }
+
+  // ── Error state ──────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+        {error}
+        <Button variant="outline" size="sm" className="ml-4" onClick={loadDocs}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Empty state ──────────────────────────────────────────────
+  if (docs.length === 0) {
+    return (
+      <div className="rounded-md border p-8 text-center text-muted-foreground">
+        <p className="font-medium">No documents yet</p>
+        <p className="mt-1 text-sm">Upload files using the dropzone above to see them here.</p>
+      </div>
+    );
+  }
+
+  // ── Data table ───────────────────────────────────────────────
+  return (
+    <div className="rounded-md border overflow-x-auto">
+      <Table className="min-w-[700px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[50px]">#</TableHead>
+            <TableHead>Filename</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Size</TableHead>
+            <TableHead>Pages</TableHead>
+            <TableHead>Chunks</TableHead>
+            <TableHead>Uploaded</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {docs.map((doc, idx) => (
+            <TableRow key={doc.id}>
+              <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+              <TableCell className="max-w-[200px] truncate font-medium">
+                {doc.filename}
+              </TableCell>
+              <TableCell className="uppercase text-xs text-muted-foreground">
+                {doc.fileType || "—"}
+              </TableCell>
+              <TableCell>{formatSize(doc.fileSize)}</TableCell>
+              <TableCell>{doc.pageCount || "—"}</TableCell>
+              <TableCell>{doc.chunksCount}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {formatDate(doc.createdAt)}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleDelete(doc.id)}
+                >
+                  Delete
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+//////////////////////////////////////////////////////////////////////////
+// END FILE
+//////////////////////////////////////////////////////////////////////////
+
+
+═══════════════════════════════════════════════════════════════════════
+  PART 3 — INTEGRATE INTO CASE DETAIL PAGE
+═══════════════════════════════════════════════════════════════════════
+
+Open: app/(dashboard)/cases/[id]/page.tsx
+
+This page already has a "Documents" tab (TabsContent value="documents").
+Currently it shows only locally staged files (the `files` state array).
+
+Replace the existing documents tab content with a combined view:
+
+  1. Keep the file upload dropzone on top
+  2. Add the new DocumentsTable below it (shows DB-persisted documents)
+  3. Keep the "Commit" upload button
+
+
+Replace lines 200–288 (the entire documents TabsContent block) with:
+
+        {/* 2. DOCUMENTS TAB */}
+        <TabsContent value="documents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Case Documents</CardTitle>
+              <CardDescription>
+                Currently managing{" "}
+                <strong>{caseItem.documentCount || 0}</strong> indexed document(s).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* File Upload Dropzone */}
+              <div className="border border-dashed rounded-lg p-4 bg-muted/10">
+                <FileUpload onChange={handleFileUpload} />
+              </div>
+
+              {/* Staged files table (local, not yet uploaded) */}
+              {files.length > 0 && (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[550px] sm:min-w-0">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Size</TableHead>
+                        <TableHead>Last Modified</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {files.map((file, index) => (
+                        <TableRow key={`${file.name}-${file.lastModified}`}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell className="max-w-[250px] truncate font-medium">
+                            {file.name}
+                          </TableCell>
+                          <TableCell className="truncate max-w-[120px]">
+                            {file.type || "Unknown"}
+                          </TableCell>
+                          <TableCell>{formatFileSize(file.size)}</TableCell>
+                          <TableCell suppressHydrationWarning>
+                            {new Date(file.lastModified).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <button
+                              onClick={() =>
+                                setFiles((prev) => prev.filter((_, i) => i !== index))
+                              }
+                              className="text-sm font-medium text-destructive hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Upload button */}
+              {files.length > 0 && (
+                <div className="flex justify-end">
+                  <Button onClick={handleUpload} disabled={uploading} size="default">
+                    {uploading
+                      ? "Processing uploads..."
+                      : `Commit ${files.length} Document(s) to Case`}
+                  </Button>
+                </div>
+              )}
+
+              {/* Divider */}
+              <hr className="border-t" />
+
+              {/* PERSISTED DOCUMENTS FROM DATABASE */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3">
+                  Uploaded Documents
+                </h3>
+                <DocumentsTable caseId={caseId} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
+3. ADD THE IMPORT at the top of the file (near the other imports):
+
+   import { DocumentsTable } from "@/components/DocumentsTable";
+
+
+═══════════════════════════════════════════════════════════════════════
+  PART 4 — STANDALONE DOCUMENTS PAGE (OPTIONAL)
+═══════════════════════════════════════════════════════════════════════
+
+The existing documents page (app/(dashboard)/documents/page.tsx) currently
+shows only locally selected files — no database connection.
+
+To make it show DB-persisted documents, replace its content with:
+
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/ui/file-upload";
+import { DocumentsTable } from "@/components/DocumentsTable";
+import { uploadDocuments } from "@/lib/api";
+
+export default function DocumentsPage() {
+  const searchParams = useSearchParams();
+  const caseId = searchParams.get("caseId") ?? "";
+
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // trigger re-fetch
+
+  const handleFileUpload = (uploadedFiles: File[]) => {
+    setFiles((prev) => {
+      const existing = new Set(
+        prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`),
+      );
+      const newFiles = uploadedFiles.filter(
+        (f) => !existing.has(`${f.name}-${f.size}-${f.lastModified}`),
+      );
+      return [...prev, ...newFiles];
+    });
+  };
+
+  const handleUpload = async () => {
+    if (files.length === 0) {
+      alert("Please select files first.");
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    try {
+      await uploadDocuments(files, caseId || undefined);
+      setFiles([]);
+      setRefreshKey((k) => k + 1); // trigger DocumentsTable re-fetch
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl">Documents</h1>
+          <p className="text-sm text-muted-foreground py-2">
+            Upload and manage documents for your cases.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {caseId ? (
+            <Button asChild variant="outline">
+              <Link href={`/cases/${caseId}`}>Back to Case</Link>
+            </Button>
+          ) : null}
+          <Button onClick={handleUpload} disabled={files.length === 0 || uploading}>
+            {uploading ? "Uploading…" : "Upload Documents"}
+          </Button>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="rounded-lg border border-dashed p-4 bg-muted/10">
+        <FileUpload onChange={handleFileUpload} />
+      </div>
+
+      {caseId ? (
+        <DocumentsTable key={refreshKey} caseId={caseId} />
+      ) : (
+        <div className="rounded-md border p-8 text-center text-muted-foreground">
+          Select a case to view its documents.
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+═══════════════════════════════════════════════════════════════════════
+  PART 5 — QUICK REFERENCE
+═══════════════════════════════════════════════════════════════════════
+
+FILES TO CREATE:
+  components/DocumentsTable.tsx    — reusable table component
+
+FILES TO EDIT:
+  lib/api.ts                       — add DocumentData type + 4 API functions
+  app/(dashboard)/cases/[id]/page.tsx — import + use DocumentsTable
+
+OPTIONAL EDIT:
+  app/(dashboard)/documents/page.tsx  — replace with DB-backed version
+
+DATA FLOW:
+  Frontend              Backend                  Database
+  ────────              ───────                  ────────
+  fetchDocuments()  →   GET /documents?case_id  →  PostgreSQL
+  deleteDocument()  →   DELETE /documents/:id   →  PostgreSQL + Qdrant
+  uploadDocuments() →   POST /upload-documents  →  PostgreSQL + Qdrant
+
+TABLE COLUMNS:
+  # | Filename | Type | Size | Pages | Chunks | Uploaded | Actions (Delete)
+
+RESTRICTIONS:
+  - Frontend can only see documents belonging to the authenticated user
+    (enforced server-side by get_current_user)
+  - Table supports case-scoped viewing (pass caseId prop)
+  - Delete removes both the PostgreSQL row AND all Qdrant chunks
+
+================================================================================

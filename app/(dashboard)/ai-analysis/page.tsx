@@ -8,4 +8,4 @@ const AI_Analysis = () => {
   )
 }
 
-export default AI_Analysis
+export default AI_Analysis;

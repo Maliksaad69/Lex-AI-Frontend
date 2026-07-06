@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Search, Bell, User, LogOut, Settings } from "lucide-react";
+import Link from "next/link";
+import { Moon, Sun, Search, Bell, User, LogOut, Settings, LayoutDashboard } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +12,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import LaunchUI from "@/components/logos/launch-ui";
+import { useAuth } from "@/contexts/auth-context";
 
 const pageLabels: Record<string, string> = {
   dashboard: "Dashboard",
@@ -32,10 +35,11 @@ function breadcrumb(pathname: string): string[] {
 export default function DashboardNavbar() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
+  const { username, logout } = useAuth();
   const crumbs = breadcrumb(pathname);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
       {/* Left: Logo + Breadcrumb */}
       <div className="flex items-center gap-3">
         <LaunchUI className="h-6 w-6 text-primary" />
@@ -61,10 +65,6 @@ export default function DashboardNavbar() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
-        {/* Search */}
-
-    
-
         {/* Theme toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -90,20 +90,25 @@ export default function DashboardNavbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>{username ?? "My Account"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="size-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="size-4" />
-              Settings
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard">
+                  <LayoutDashboard className="size-4" />
+                  Dashboard
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="size-4" />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Account</DropdownMenuLabel>
+            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
               <LogOut className="size-4" />
-              Sign out
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

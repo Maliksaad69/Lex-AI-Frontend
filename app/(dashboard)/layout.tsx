@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+
 import {
   Sidebar,
   SidebarBody,
@@ -56,11 +57,6 @@ export default function DashboardLayout({
       label: "Cases",
       href: "/cases",
       icon: <IconBriefcase className="h-5 w-5" />,
-    },
-    {
-      label: "Documents",
-      href: "/documents",
-      icon: <IconFileText className="h-5 w-5" />,
     },
     {
       label: "AI Analysis",

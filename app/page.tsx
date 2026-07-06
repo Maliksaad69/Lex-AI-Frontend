@@ -185,7 +185,7 @@ export default function Home() {
                 <Brain className="h-6 w-6" />
               </CardTitle>
 
-              <CardDescription className="font-black text-lg text-black">
+              <CardDescription className="font-black text-lg text-foreground">
                 AI Case Analysis
               </CardDescription>
             </CardHeader>
@@ -204,7 +204,7 @@ export default function Home() {
                 <Brain className="h-6 w-6" />
               </CardTitle>
 
-              <CardDescription className="font-black text-lg text-black">
+              <CardDescription className="font-black text-lg text-foreground">
                 Jury Intelligence
 
               </CardDescription>
@@ -223,7 +223,7 @@ export default function Home() {
                 <Brain className="h-6 w-6" />
               </CardTitle>
 
-              <CardDescription className="font-black text-lg text-black">
+              <CardDescription className="font-black text-lg text-foreground">
                 Attorney–Client Privilege
               </CardDescription>
             </CardHeader>
@@ -241,7 +241,7 @@ export default function Home() {
                 <Brain className="h-6 w-6" />
               </CardTitle>
 
-              <CardDescription className="font-black text-lg text-black">
+              <CardDescription className="font-black text-lg text-foreground">
                 Instant Insights
               </CardDescription>
             </CardHeader>
@@ -259,7 +259,7 @@ export default function Home() {
                 <Brain className="h-6 w-6" />
               </CardTitle>
 
-              <CardDescription className="font-black text-lg text-black">
+              <CardDescription className="font-black text-lg text-foreground">
                 Document Intelligence
               </CardDescription>
             </CardHeader>
@@ -277,7 +277,7 @@ export default function Home() {
                 <Brain className="h-6 w-6" />
               </CardTitle>
 
-              <CardDescription className="font-black text-lg text-black">
+              <CardDescription className="font-black text-lg text-foreground">
                 Strategy Reports
 
               </CardDescription>
@@ -371,14 +371,14 @@ export default function Home() {
             {/* Testimonial 1 */}
             <Card className="w-full py-3">
               <CardHeader className="space-y-0 p-4 pb-1">
-                <CardDescription className="text-sm leading-6 text-black">
+                <CardDescription className="text-sm leading-6 text-foreground">
                   “LexAI changed how our trial team prepares. The jury simulation alone
                   saved us 40 hours of manual research on our last verdict.”
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="p-4 pt-0">
-                <p className="font-semibold text-black">Margaret Osei</p>
+                <p className="font-semibold text-foreground">Margaret Osei</p>
                 <p className="text-sm text-muted-foreground">
                   Senior Trial Partner, Osei &amp; Vance LLP
                 </p>
@@ -388,7 +388,7 @@ export default function Home() {
             {/* Testimonial 2 */}
             <Card className="w-full py-3">
               <CardHeader className="space-y-0 p-4 pb-1">
-                <CardDescription className="text-sm leading-6 text-black">
+                <CardDescription className="text-sm leading-6 text-foreground">
                   “The AI case analysis uncovered weaknesses in opposing counsels
                   strategy that our team had overlooked. It became an essential part of
                   our trial preparation.”
@@ -396,7 +396,7 @@ export default function Home() {
               </CardHeader>
 
               <CardContent className="p-4 pt-0">
-                <p className="font-semibold text-black">Daniel Brooks</p>
+                <p className="font-semibold text-foreground">Daniel Brooks</p>
                 <p className="text-sm text-muted-foreground">
                   Litigation Counsel, Brooks Legal Group
                 </p>
@@ -406,7 +406,7 @@ export default function Home() {
             {/* Testimonial 3 */}
             <Card className="w-full py-3">
               <CardHeader className="space-y-0 p-4 pb-1">
-                <CardDescription className="text-sm leading-6 text-black">
+                <CardDescription className="text-sm leading-6 text-foreground">
                   “Preparing for voir dire used to take days. With LexAI we generated
                   tailored juror insights in minutes, giving our attorneys far greater
                   confidence before trial.”
@@ -414,7 +414,7 @@ export default function Home() {
               </CardHeader>
 
               <CardContent className="p-4 pt-0">
-                <p className="font-semibold text-black">Sophia Martinez</p>
+                <p className="font-semibold text-foreground">Sophia Martinez</p>
                 <p className="text-sm text-muted-foreground">
                   Managing Partner, Martinez Trial Attorneys
                 </p>
@@ -423,13 +423,13 @@ export default function Home() {
             {/* Testimonial 3 */}
             <Card className="w-full py-3">
               <CardHeader className="space-y-0 p-4 pb-1">
-                <CardDescription className="text-sm leading-6 text-black">
+                <CardDescription className="text-sm leading-6 text-foreground">
                   “The most thoughtful legal AI product I have seen. It respects the complexity of litigation instead of oversimplifying it.”
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="p-4 pt-0">
-                <p className="font-semibold text-black">Dr. Fatima Nwosu</p>
+                <p className="font-semibold text-foreground">Dr. Fatima Nwosu</p>
                 <p className="text-sm text-muted-foreground">
                   Legal Innovation Director, Stanton & Clough
                 </p>
@@ -454,7 +454,7 @@ export default function Home() {
               </Button>
             </Link>
             <Button
-              className="rounded-md bg-white text-black hover:bg-gray-100 border border-gray-300 bg-none"
+              className="rounded-md bg-card text-foreground hover:bg-accent border border-border bg-none"
             >
               Sign in to your account
             </Button>

@@ -8,4 +8,4 @@ const Jury_Simulation = () => {
   )
 }
 
-export default Jury_Simulation
+export default Jury_Simulation;
