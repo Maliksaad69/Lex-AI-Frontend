@@ -220,3 +220,101 @@ export async function fetchDocuments(caseId?: string): Promise<DocumentData[]> {
 export async function deleteDocument(documentId: string): Promise<void> {
   return request(`/documents/${documentId}`, { method: "DELETE" });
 }
+
+// ── Module 3 — Case Analysis ──────────────────────────────────────────
+
+/** One extracted fact from the 7-agent pipeline. */
+export interface AnalysisFact {
+  id: string;
+  statement: string;
+  source_document: string | null;
+  page: string | null;
+  importance: number;
+  disputed: boolean;
+  confidence: number;
+  human_reviewed?: boolean;
+}
+
+/** Identified party (plaintiff, defendant, witness, etc.). */
+export interface AnalysisParty {
+  id: string;
+  name: string;
+  role: string;
+  type: string;
+}
+
+/** Legal claim identified from the documents. */
+export interface AnalysisClaim {
+  id: string;
+  claim_type: string;
+  legal_basis: string | null;
+  elements: string[];
+}
+
+/** Link between a claim and a supporting/undermining fact. */
+export interface EvidenceLink {
+  id: string;
+  claim_id: string;
+  fact_id: string;
+  relationship: "supports" | "undermines";
+  weight_score: number;
+  rationale: string | null;
+}
+
+/** A dated event in the case timeline. */
+export interface TimelineEvent {
+  id: string;
+  date: string | null;
+  event: string;
+  significance: string | null;
+}
+
+/** Contradiction between two facts. */
+export interface Contradiction {
+  id: string;
+  fact_a_id: string;
+  fact_b_id: string;
+  nature: string | null;
+  impact: string | null;
+}
+
+/** Assessment of a claim's strength. */
+export interface Assessment {
+  id: string;
+  claim_id: string;
+  overall_strength: number;
+  strengths: string[];
+  weaknesses: string[];
+  risk_level: "low" | "medium" | "high" | "critical";
+  recommendations: string[];
+}
+
+/** Full response from /cases/{id}/analysis endpoints. */
+export interface CaseAnalysisResult {
+  case_id: string;
+  facts: AnalysisFact[];
+  parties: AnalysisParty[];
+  claims: AnalysisClaim[];
+  evidence_links: EvidenceLink[];
+  timeline: TimelineEvent[];
+  contradictions: Contradiction[];
+  assessments: Assessment[];
+  status: string;
+}
+
+/**
+ * Trigger the full 7-agent analysis pipeline.
+ * Blocks until all agents finish (may take 30-120 seconds
+ * depending on document volume). 5-minute timeout to accommodate
+ * Groq rate limits and agent retries.
+ */
+export async function runCaseAnalysis(caseId: string): Promise<CaseAnalysisResult> {
+  return request(`/cases/${caseId}/analyze`, {
+    method: "POST",
+  }, 300_000);  // 5 min — 7 agents × ~5s sleep + Groq API calls + retries
+}
+
+/** Fetch the last analysis result from the database (instant read). */
+export async function fetchCaseAnalysis(caseId: string): Promise<CaseAnalysisResult> {
+  return request(`/cases/${caseId}/analysis`);
+}

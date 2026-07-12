@@ -40,12 +40,14 @@ import {
 
 import { Moon, Sun, Brain } from "lucide-react"
 import { useTheme } from "next-themes"
+import Image from "next/image"
 const navItems = [
   { name: "Home", link: "/" },
   { name: "Features", link: "#features" },
   { name: "Testimonials", link: "#testimonials" },
   { name: "Getting Started", link: "#starting" },
 ];
+
 
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
@@ -80,9 +82,7 @@ export default function Home() {
               <DropdownMenuItem onClick={() => setTheme("dark")}>
                 Dark
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("system")}>
-                System
-              </DropdownMenuItem>
+             
             </DropdownMenuContent>
           </DropdownMenu>
         </NavBody>
@@ -158,6 +158,28 @@ export default function Home() {
           </Button>
 
 
+        </section>
+
+        <section className="mx-auto max-w-5xl px-1 pt-2 pb-1 text-center">
+            {theme ==="light" ? (
+            <Image
+              src="/dashboard.png"
+            alt="Dashboard"
+            width={1200}
+            height={675}
+            
+          />
+
+            ): (
+               <Image
+              src="/dark_dashboard.png"
+            alt="Dashboard"
+            width={1200}
+            height={675}
+          />
+            )}
+            
+      
         </section>
         <section className="mx-auto max-w-5xl px-1 pt-2 pb-1 text-center">
           <p className="mt-2 text-sm leading-6 text-muted-foreground">

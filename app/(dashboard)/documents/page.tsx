@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { fetchCase, uploadDocuments, type CaseData } from "@/lib/api";
 
-const Documents = () => {
+function DocumentsInner() {
   const searchParams = useSearchParams();
   const caseId = searchParams.get("caseId") ?? "";
 
@@ -27,9 +27,7 @@ const Documents = () => {
 
   // Load the linked case from the API
   useEffect(() => {
-    const id = Number(caseId);
-    if (isNaN(id)) return;
-    fetchCase(id)
+    fetchCase(caseId)
       .then(setActiveCase)
       .catch(() => setActiveCase(null));
   }, [caseId]);
@@ -64,11 +62,8 @@ const Documents = () => {
       setFiles([]);
       alert("Documents uploaded successfully!");
       // Refresh the case to update document count
-      const id = Number(caseId);
-      if (!isNaN(id)) {
-        const updated = await fetchCase(id);
-        setActiveCase(updated);
-      }
+      const updated = await fetchCase(caseId);
+      setActiveCase(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -183,6 +178,12 @@ const Documents = () => {
       </div>
     </div>
   );
-};
+}
 
-export default Documents;
+export default function DocumentsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted-foreground">Loading documents…</div>}>
+      <DocumentsInner />
+    </Suspense>
+  );
+}
