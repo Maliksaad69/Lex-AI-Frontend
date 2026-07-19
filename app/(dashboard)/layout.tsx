@@ -15,11 +15,7 @@ import { motion } from "motion/react";
 import {
   IconLayoutDashboard,
   IconBriefcase,
-  IconFileText,
-  IconBrain,
-  IconUsers,
   IconReportAnalytics,
-  IconSettings,
 } from "@tabler/icons-react";
 
 function SidebarLogo({ open }: { open: boolean }) {
@@ -59,24 +55,9 @@ export default function DashboardLayout({
       icon: <IconBriefcase className="h-5 w-5" />,
     },
     {
-      label: "AI Analysis",
-      href: "/ai-analysis",
-      icon: <IconBrain className="h-5 w-5" />,
-    },
-    {
-      label: "Jury Simulation",
-      href: "/jury-simulation",
-      icon: <IconUsers className="h-5 w-5" />,
-    },
-    {
       label: "Reports",
       href: "/reports",
       icon: <IconReportAnalytics className="h-5 w-5" />,
-    },
-    {
-      label: "Settings",
-      href: "/settings",
-      icon: <IconSettings className="h-5 w-5" />,
     },
   ];
 

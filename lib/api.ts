@@ -318,3 +318,132 @@ export async function runCaseAnalysis(caseId: string): Promise<CaseAnalysisResul
 export async function fetchCaseAnalysis(caseId: string): Promise<CaseAnalysisResult> {
   return request(`/cases/${caseId}/analysis`);
 }
+
+// ── Jury Simulation ────────────────────────────────────────────────────
+
+export interface JurorPersona {
+  id: string;
+  juror_number: number;
+  name: string | null;
+  age: number | null;
+  gender: string | null;
+  education: string | null;
+  occupation: string | null;
+  biography: string | null;
+  behavioral_profile: Record<string, number | string>;
+}
+
+export interface JurorVote {
+  verdict: "plaintiff" | "defense" | null;
+  confidence: number | null;
+  damages: number | null;
+  reasoning: string;
+  evidence_referenced: string[];
+  witness_credibility: Record<string, number>;
+  key_doubts: string;
+}
+
+export interface JurorCard {
+  persona: JurorPersona;
+  vote: JurorVote | null;
+}
+
+export interface SimulationSummary {
+  id: string;
+  case_id: string;
+  status: string;
+  model: string | null;
+  temperature: number | null;
+  juror_count: number;
+  plaintiff_votes: number;
+  defense_votes: number;
+  confidence: number | null;
+  average_damages: number | null;
+  summary: string | null;
+  created_at: string | null;
+  completed_at: string | null;
+}
+
+export interface AggregationData {
+  plaintiff_votes?: number;
+  defense_votes?: number;
+  confidence?: number | null;
+  evidence_influence: { evidence: string; mentions: number; influence_score: number; explanation: string }[];
+  witness_credibility_ranking: { witness: string; avg_score: number; count: number; explanation: string }[];
+  common_themes: { theme: string; mention_count: number }[];
+  consensus_level: string;
+  jury_deliberation_summary: string;
+  decision_drivers: { driver: string; juror_references: number }[];
+  damages_distribution: { minimum: number; maximum: number; average: number; median: number; count: number } | null;
+  confidence_distribution: number[];
+  verdict_prediction?: Record<string, any>;
+}
+
+export interface JurySimulationResult {
+  simulation: SimulationSummary;
+  aggregation: AggregationData;
+  jurors: JurorCard[];
+  case_data: { facts_count: number; parties_count: number; claims_count: number; timeline_count: number };
+}
+
+export interface SimulationListItem {
+  id: string;
+  status: string;
+  juror_count: number;
+  plaintiff_votes: number;
+  defense_votes: number;
+  confidence: number | null;
+  average_damages: number | null;
+  summary: string | null;
+  created_at: string | null;
+  completed_at: string | null;
+}
+
+/** Run a new jury simulation (POST). Blocks until all 12 jurors have voted. */
+export async function runJurySimulation(
+  caseId: string,
+  temperature?: number,
+  jurorCount?: number,
+): Promise<JurySimulationResult> {
+  const params = new URLSearchParams();
+  if (temperature !== undefined) params.set("temperature", String(temperature));
+  if (jurorCount !== undefined) params.set("juror_count", String(jurorCount));
+  const qs = params.toString();
+  return request(`/cases/${caseId}/jury-simulation${qs ? "?" + qs : ""}`, {
+    method: "POST",
+  }, 600_000); // 10 min — 12 jurors × ~8s each + persona generation
+}
+
+/** Fetch the latest simulation for a case. */
+export async function fetchLatestJurySimulation(caseId: string): Promise<JurySimulationResult> {
+  return request(`/cases/${caseId}/jury-simulation`);
+}
+
+/** List all simulations for a case. */
+export async function listJurySimulations(caseId: string): Promise<SimulationListItem[]> {
+  return request(`/cases/${caseId}/jury-simulations`);
+}
+
+/** Get a specific simulation by ID with full detail. */
+export async function fetchJurySimulationDetail(simId: string): Promise<{
+  simulation: SimulationSummary;
+  jurors: JurorCard[];
+}> {
+  return request(`/juries/simulations/${simId}`);
+}
+
+/** Download a jury simulation PDF report. Returns the blob. */
+export async function downloadJuryReportPdf(simId: string): Promise<Blob> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}/juries/simulations/${simId}/report`, {
+    headers,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Report generation failed");
+  }
+  return res.blob();
+}

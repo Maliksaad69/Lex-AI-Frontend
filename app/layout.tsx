@@ -40,7 +40,7 @@ export default function RootLayout({
         figtree.variable
       )}
     >
-      <body className="h-full overflow-x-hidden">
+      <body className="h-full overflow-x-hidden" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
